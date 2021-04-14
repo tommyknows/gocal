@@ -1,10 +1,11 @@
 package parser
 
 import (
+	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
-
-	duration "github.com/ChannelMeter/iso8601duration"
 )
 
 const (
@@ -67,13 +68,71 @@ func ParseTime(s string, params map[string]string, ty int, allday bool) (*time.T
 	return &t, err
 }
 
-func ParseDuration(s string) (*time.Duration, error) {
-	d, err := duration.FromString(s)
-	if err != nil {
-		return nil, err
+var (
+	full = regexp.MustCompile(`P((?P<year>\d+)Y)?((?P<month>\d+)M)?((?P<day>\d+)D)?(T((?P<hour>\d+)H)?((?P<minute>\d+)M)?((?P<second>\d+)S)?)?`)
+	week = regexp.MustCompile(`P((?P<week>\d+)W)`)
+)
+
+func ParseDuration(dur string) (*time.Duration, error) {
+	var (
+		match []string
+		re    *regexp.Regexp
+	)
+
+	if week.MatchString(dur) {
+		match = week.FindStringSubmatch(dur)
+		re = week
+	} else if full.MatchString(dur) {
+		match = full.FindStringSubmatch(dur)
+		re = full
+	} else {
+		return nil, fmt.Errorf("bad format string")
 	}
-	dur := d.ToDuration()
-	return &dur, nil
+
+	var years, weeks, days, hours, minutes, seconds int
+
+	for i, name := range re.SubexpNames() {
+		part := match[i]
+		if i == 0 || name == "" || part == "" {
+			continue
+		}
+
+		val, err := strconv.Atoi(part)
+		if err != nil {
+			return nil, err
+		}
+		switch name {
+		case "year":
+			years = val
+		case "month":
+			return nil, fmt.Errorf("no months allowed")
+		case "week":
+			weeks = val
+		case "day":
+			days = val
+		case "hour":
+			hours = val
+		case "minute":
+			minutes = val
+		case "second":
+			seconds = val
+		default:
+			return nil, fmt.Errorf("unknown field %s", name)
+		}
+	}
+
+	day := time.Hour * 24
+	year := day * 365
+
+	tot := time.Duration(0)
+	tot += year * time.Duration(years)
+	tot += day * 7 * time.Duration(weeks)
+	tot += day * time.Duration(days)
+	tot += time.Hour * time.Duration(hours)
+	tot += time.Minute * time.Duration(minutes)
+	tot += time.Second * time.Duration(seconds)
+
+	return &tot, nil
 }
 
 func LoadTimezone(tzid string) (*time.Location, error) {

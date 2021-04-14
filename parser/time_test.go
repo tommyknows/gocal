@@ -38,6 +38,35 @@ func Test_ParseTimezone(t *testing.T) {
 	}
 }
 
+func Test_DurationFromString(t *testing.T) {
+	t.Parallel()
+
+	// test with bad format
+	_, err := ParseDuration("asdf")
+	assert.Error(t, err)
+
+	// test with month
+	_, err = ParseDuration("P1M")
+	assert.Error(t, err)
+
+	// test with good full string
+	dur, err := ParseDuration("P1Y2DT3H4M5S")
+	assert.Nil(t, err)
+	expected := time.Duration(
+		time.Hour*24*365 +
+			time.Hour*24*2 +
+			time.Hour*3 +
+			time.Minute*4 +
+			time.Second*5,
+	)
+	assert.Equal(t, expected, *dur)
+
+	// test with good week string
+	dur, err = ParseDuration("P1W")
+	assert.Nil(t, err)
+	assert.Equal(t, time.Hour*7*24, *dur)
+}
+
 func Test_CustomTimezoneMapper(t *testing.T) {
 	TZMapper = func(s string) (*time.Location, error) {
 		mapping := map[string]string{
