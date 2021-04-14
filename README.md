@@ -6,13 +6,31 @@ Gocal takes an io.Reader and produces an array of `Event`s from it.
 
 Event are parsed between two given dates (`Gocal.Start` and `Gocal.End`, 3 months by default). Any event outside this range will be ignored. This behavior can be disabled by setting `SkipBounds` to `true` in the `Gocal` struct. Please note that the behavior will still be enacted for recurring event, to prevent infinite parsing.
 
+## Foreword
+
+This is a fork of [apognu/gocal](github.com/apognu/focal), but with changed
+imports and a minor, but important difference: it does not depend on
+[ChannelMeter/iso8601duration](https://github.com/ChannelMeter/iso8601duration).
+
+That dependency breaks Gazelle's imports because it imports it's own package in
+a test;
+
+```
+gazelle: imports github.com/ChannelMeter/iso8601duration and github.com/channelmeter/iso8601duration resolve to the same repository rule name com_github_channelmeter_iso8601duration
+```
+
+[Same same, but different](https://github.com/Sirupsen/logrus).
+
+Because it only used ~80 lines of codes, I just copy-pasted those lines into
+this repository and removed the dependency altogether.
+
 ## Usage
 
 ```go
 package main
 
 import (
-  "github.com/apognu/gocal"
+  "github.com/tommyknows/gocal"
 )
 
 func main() {
